@@ -80,6 +80,7 @@ class VaspCalcDb(CalcDb):
         """
         dos = None
         bs = None
+        chgcar = None
 
         # move dos and BS from doc to gridfs
         if use_gridfs and "calcs_reversed" in task_doc:
@@ -91,6 +92,11 @@ class VaspCalcDb(CalcDb):
             if "bandstructure" in task_doc["calcs_reversed"][0]:  # only store idx=0 BS
                 bs = json.dumps(task_doc["calcs_reversed"][0]["bandstructure"], cls=MontyEncoder)
                 del task_doc["calcs_reversed"][0]["bandstructure"]
+
+            if "chgcar" in task_doc["calcs_reversed"][0]:  # only store idx=0 DOS
+                # chgcar = task_doc["calcs_reversed"][0]["chgcar"]
+                chgcar = json.dumps(task_doc["calcs_reversed"][0]["chgcar"], cls=MontyEncoder)
+                del task_doc["calcs_reversed"][0]["chgcar"]
 
         # insert the task document
         t_id = self.insert(task_doc)
@@ -110,6 +116,11 @@ class VaspCalcDb(CalcDb):
             self.collection.update_one(
                 {"task_id": t_id}, {"$set": {"calcs_reversed.0.bandstructure_fs_id": bfs_gfs_id}})
 
+        if chgcar:
+            chgcar_gfs_id, compression_type = self.insert_gridfs(chgcar, "chgcar_fs", task_id=t_id)
+            self.collection.update_one(
+                {"task_id": t_id}, {"$set": {"calcs_reversed.0.chgcar_compression": compression_type}})
+            self.collection.update_one({"task_id": t_id}, {"$set": {"calcs_reversed.0.chgcar_fs_id": chgcar_gfs_id}})
         return t_id
 
     def retrieve_task(self, task_id):
@@ -131,6 +142,9 @@ class VaspCalcDb(CalcDb):
         if 'dos_fs_id' in calc:
             dos = self.get_dos(task_id)
             calc["dos"] = dos.as_dict()
+        if 'chgcar_fs_id' in calc:
+            chgcar = self.get_chgcar(task_id)
+            calc["chgcar"] = chgcar
         return task_doc
 
     def insert_gridfs(self, d, collection="fs", compress=True, oid=None, task_id=None):
@@ -183,6 +197,13 @@ class VaspCalcDb(CalcDb):
         dos_json = zlib.decompress(fs.get(fs_id).read())
         dos_dict = json.loads(dos_json.decode())
         return CompleteDos.from_dict(dos_dict)
+
+    def get_chgcar(self, task_id):
+        # TODO implement reading chgcar once we figure out how to store
+        m_task = self.collection.find_one({"task_id": task_id}, {"calcs_reversed": 1})
+        fs_id = m_task['calcs_reversed'][0]['chgcar_fs_id']
+        fs = gridfs.GridFS(self.db, 'chgcar_fs')
+        return zlib.decompress(fs.get(fs_id).read())
 
     def reset(self):
         self.collection.delete_many({})

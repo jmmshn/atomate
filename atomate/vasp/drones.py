@@ -16,6 +16,7 @@ from collections import OrderedDict
 import json
 import glob
 import traceback
+import gzip
 
 from monty.io import zopen
 from monty.json import jsanitize
@@ -27,7 +28,7 @@ from pymatgen.core.structure import Structure
 from pymatgen.core.operations import SymmOp
 from pymatgen.electronic_structure.bandstructure import BandStructureSymmLine
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
-from pymatgen.io.vasp import BSVasprun, Vasprun, Outcar, Locpot
+from pymatgen.io.vasp import BSVasprun, Vasprun, Outcar, Locpot, Chgcar
 from pymatgen.io.vasp.inputs import Poscar, Potcar, Incar, Kpoints
 from pymatgen.apps.borg.hive import AbstractDrone
 
@@ -78,7 +79,7 @@ class VaspDrone(AbstractDrone):
 
     }
 
-    def __init__(self, runs=None, parse_dos="auto", bandstructure_mode="auto",
+    def __init__(self, runs=None, parse_dos="auto", bandstructure_mode="auto", parse_chgcar=False,
                  parse_locpot=True, additional_fields=None, use_full_uri=True):
         """
         Initialize a Vasp drone to parse vasp outputs
@@ -107,6 +108,7 @@ class VaspDrone(AbstractDrone):
                                                 for i in range(9)]  # can't auto-detect: path unknown
         self.bandstructure_mode = bandstructure_mode
         self.parse_locpot = parse_locpot
+        self.parse_chgcar = parse_chgcar
 
     def assimilate(self, path):
         """
@@ -385,12 +387,33 @@ class VaspDrone(AbstractDrone):
             locpot = Locpot.from_file(os.path.join(dir_name, d["output_file_paths"]["locpot"]))
             d["output"]["locpot"] = {i: locpot.get_average_along_axis(i) for i in range(3)}
 
+        if self.parse_chgcar != False:
+            # parse CHGCAR file only for static calculations
+            # TODO require static run later
+            # if self.parse_chgcar == True and vrun.incar.get("NSW", 0) < 1:
+            try:
+                chg_str = self.process_chgcar(os.path.join(dir_name, d["output_file_paths"]["chgcar"]))
+                #Chgcar.from_file(os.path.join(dir_name, d["output_file_paths"]["chgcar"]))
+            except:
+                raise ValueError("No valid charge data exist")
+            d["chgcar"] = chg_str
+
         # parse force constants
         if hasattr(vrun, "force_constants"):
             d["output"]["force_constants"] = vrun.force_constants.tolist()
             d["output"]["normalmode_eigenvals"] = vrun.normalmode_eigenvals.tolist()
             d["output"]["normalmode_eigenvecs"] = vrun.normalmode_eigenvecs.tolist()
         return d
+
+    def process_chgcar(self, chg_file):
+        # parse dos if forced to or auto mode set and  0 ionic steps were performed -> static calculation and not DFPT
+        try:
+            Chgcar.from_file(chg_file)
+        except:
+            raise ValueError("No valid dos data exist")
+        with gzip.open(chg_file, 'rt') as f:
+            chg_str = f.read()
+        return chg_str
 
     def process_bandstructure(self, vrun):
 
