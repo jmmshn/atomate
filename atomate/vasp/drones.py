@@ -79,7 +79,7 @@ class VaspDrone(AbstractDrone):
 
     }
 
-    def __init__(self, runs=None, parse_dos="auto", bandstructure_mode="auto", parse_chgcar=False,
+    def __init__(self, runs=None, parse_dos="auto", bandstructure_mode="auto", parse_chgcar=False, parse_aeccar=False,
                  parse_locpot=True, additional_fields=None, use_full_uri=True):
         """
         Initialize a Vasp drone to parse vasp outputs
@@ -109,6 +109,7 @@ class VaspDrone(AbstractDrone):
         self.bandstructure_mode = bandstructure_mode
         self.parse_locpot = parse_locpot
         self.parse_chgcar = parse_chgcar
+        self.parse_aeccar = parse_aeccar
 
     def assimilate(self, path):
         """
@@ -393,10 +394,21 @@ class VaspDrone(AbstractDrone):
             # if self.parse_chgcar == True and vrun.incar.get("NSW", 0) < 1:
             try:
                 chg_str = self.process_chgcar(os.path.join(dir_name, d["output_file_paths"]["chgcar"]))
-                #Chgcar.from_file(os.path.join(dir_name, d["output_file_paths"]["chgcar"]))
             except:
                 raise ValueError("No valid charge data exist")
             d["chgcar"] = chg_str
+
+        if self.parse_aeccar != False:
+            try:
+                chg_str = self.process_chgcar(os.path.join(dir_name, d["output_file_paths"]["aeccar0"]))
+            except:
+                raise ValueError("No valid charge data exist")
+            d["aeccar0"] = chg_str
+            try:
+                chg_str = self.process_chgcar(os.path.join(dir_name, d["output_file_paths"]["aeccar2"]))
+            except:
+                raise ValueError("No valid charge data exist")
+            d["aeccar2"] = chg_str
 
         # parse force constants
         if hasattr(vrun, "force_constants"):

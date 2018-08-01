@@ -288,6 +288,7 @@ class TestVaspWorkflows(AtomateTest):
         my_wf.fws[0].tasks[-1]['additional_fields'].update(
             {"test_additional_field": self.struct_si})
         my_wf.fws[0].tasks[-1]["parse_chgcar"] = True
+        my_wf.fws[0].tasks[-1]["parse_aeccar"] = True
         self.lp.add_wf(my_wf)
 
         # run the workflow
@@ -302,6 +303,8 @@ class TestVaspWorkflows(AtomateTest):
         self.assertTrue(all([s == 'COMPLETED' for s in wf.fw_states.values()]))
 
         chgcar_fs_id = d["calcs_reversed"][0]["chgcar_fs_id"]
+        accar0_fs_id = d["calcs_reversed"][0]["aeccar0_fs_id"]
+        accar2_fs_id = d["calcs_reversed"][0]["aeccar2_fs_id"]
 
         self.assertTrue(bool(chgcar_fs_id))
 

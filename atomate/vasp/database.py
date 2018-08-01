@@ -81,6 +81,7 @@ class VaspCalcDb(CalcDb):
         dos = None
         bs = None
         chgcar = None
+        aeccar0 = None
 
         # move dos and BS from doc to gridfs
         if use_gridfs and "calcs_reversed" in task_doc:
@@ -96,6 +97,16 @@ class VaspCalcDb(CalcDb):
             if "chgcar" in task_doc["calcs_reversed"][0]:  # only store idx=0 DOS
                 chgcar = task_doc["calcs_reversed"][0]["chgcar"]
                 del task_doc["calcs_reversed"][0]["chgcar"]
+
+            if "aeccar0" in task_doc["calcs_reversed"][0]:  # only store idx=0 DOS
+                aeccar0 = task_doc["calcs_reversed"][0]["aeccar0"]
+                del task_doc["calcs_reversed"][0]["aeccar0"]
+                try:
+                    # aeccar2 should also be in the task_doc
+                    aeccar2 = task_doc["calcs_reversed"][0]["aeccar2"]
+                except:
+                    raise KeyError('aeccar2 data is missing from task_doc')
+                del task_doc["calcs_reversed"][0]["aeccar2"]
 
         # insert the task document
         t_id = self.insert(task_doc)
@@ -121,6 +132,17 @@ class VaspCalcDb(CalcDb):
             self.collection.update_one(
                 {"task_id": t_id}, {"$set": {"calcs_reversed.0.chgcar_compression": compression_type}})
             self.collection.update_one({"task_id": t_id}, {"$set": {"calcs_reversed.0.chgcar_fs_id": chgcar_gfs_id}})
+
+        # insert the AECCARs file into gridfs and update the task documents
+        if aeccar0:
+            aeccar0_gfs_id, compression_type = self.insert_gridfs(aeccar0, "aeccar0_fs", task_id=t_id)
+            self.collection.update_one(
+                {"task_id": t_id}, {"$set": {"calcs_reversed.0.aeccar0_compression": compression_type}})
+            self.collection.update_one({"task_id": t_id}, {"$set": {"calcs_reversed.0.aeccar0_fs_id": aeccar0_gfs_id}})
+            aeccar2_gfs_id, compression_type = self.insert_gridfs(aeccar2, "aeccar2_fs", task_id=t_id)
+            self.collection.update_one(
+                {"task_id": t_id}, {"$set": {"calcs_reversed.0.aeccar2_compression": compression_type}})
+            self.collection.update_one({"task_id": t_id}, {"$set": {"calcs_reversed.0.aeccar2_fs_id": aeccar2_gfs_id}})
         return t_id
 
     def retrieve_task(self, task_id):
