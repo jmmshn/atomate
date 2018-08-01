@@ -272,5 +272,38 @@ class TestVaspWorkflows(AtomateTest):
         self.assertTrue(all([s == 'COMPLETED' for s in wf.fw_states.values()]))
 
 
+    def test_chgcar_check_Vasp(self):
+        # add the workflow
+        structure = self.struct_si
+        # instructs to use db_file set by FWorker, see env_chk
+        my_wf = get_wf(structure, "static_only.yaml", vis=MPStaticSet(structure, force_gamma=True),
+                       common_params={"vasp_cmd": VASP_CMD,
+                                      "db_file": ">>db_file<<"})
+        if not VASP_CMD:
+            my_wf = use_fake_vasp(my_wf, ref_dirs_si)
+        else:
+            my_wf = use_custodian(my_wf)
+
+        # add an msonable object to additional fields
+        my_wf.fws[0].tasks[-1]['additional_fields'].update(
+            {"test_additional_field": self.struct_si})
+        my_wf.fws[0].tasks[-1]["parse_chgcar"] = True
+        self.lp.add_wf(my_wf)
+
+        # run the workflow
+        # set the db_file variable
+        rapidfire(self.lp, fworker=FWorker(env={"db_file": os.path.join(db_dir, "db.json")}))
+
+        d = self.get_task_collection().find_one()
+        self._check_run(d, mode="static")
+        self._check_run(d, mode="additional field")
+
+        wf = self.lp.get_wf_by_fw_id(1)
+        self.assertTrue(all([s == 'COMPLETED' for s in wf.fw_states.values()]))
+
+        chgcar_fs_id = d["calcs_reversed"][0]["chgcar_fs_id"]
+
+        self.assertTrue(bool(chgcar_fs_id))
+
 if __name__ == "__main__":
     unittest.main()
