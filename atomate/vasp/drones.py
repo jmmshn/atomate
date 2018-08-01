@@ -408,11 +408,10 @@ class VaspDrone(AbstractDrone):
     def process_chgcar(self, chg_file):
         # parse dos if forced to or auto mode set and  0 ionic steps were performed -> static calculation and not DFPT
         try:
-            Chgcar.from_file(chg_file)
-        except:
-            raise ValueError("No valid dos data exist")
-        with gzip.open(chg_file, 'rt') as f:
-            chg_str = f.read()
+            with gzip.open(chg_file, 'rt') as f:
+                chg_str = f.read()
+        except IOError as e:
+            raise ValueError("Unable to open CHGCAR/AECCAR file" )
         return chg_str
 
     def process_bandstructure(self, vrun):

@@ -94,8 +94,7 @@ class VaspCalcDb(CalcDb):
                 del task_doc["calcs_reversed"][0]["bandstructure"]
 
             if "chgcar" in task_doc["calcs_reversed"][0]:  # only store idx=0 DOS
-                # chgcar = task_doc["calcs_reversed"][0]["chgcar"]
-                chgcar = json.dumps(task_doc["calcs_reversed"][0]["chgcar"], cls=MontyEncoder)
+                chgcar = task_doc["calcs_reversed"][0]["chgcar"]
                 del task_doc["calcs_reversed"][0]["chgcar"]
 
         # insert the task document
@@ -116,6 +115,7 @@ class VaspCalcDb(CalcDb):
             self.collection.update_one(
                 {"task_id": t_id}, {"$set": {"calcs_reversed.0.bandstructure_fs_id": bfs_gfs_id}})
 
+        # insert the CHGCAR file into gridfs and update the task documents
         if chgcar:
             chgcar_gfs_id, compression_type = self.insert_gridfs(chgcar, "chgcar_fs", task_id=t_id)
             self.collection.update_one(
@@ -199,7 +199,7 @@ class VaspCalcDb(CalcDb):
         return CompleteDos.from_dict(dos_dict)
 
     def get_chgcar(self, task_id):
-        # TODO implement reading chgcar once we figure out how to store
+        # read a CHGCAR or AECCAR file as a string
         m_task = self.collection.find_one({"task_id": task_id}, {"calcs_reversed": 1})
         fs_id = m_task['calcs_reversed'][0]['chgcar_fs_id']
         fs = gridfs.GridFS(self.db, 'chgcar_fs')

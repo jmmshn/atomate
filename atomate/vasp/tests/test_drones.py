@@ -148,5 +148,13 @@ class VaspToDbTaskDroneTest(unittest.TestCase):
         self.assertAlmostEqual(np.sum(doc['calcs_reversed'][0]['output']['locpot'][1]),0)
         self.assertAlmostEqual(np.sum(doc['calcs_reversed'][0]['output']['locpot'][2]),0)
 
+    def test_parse_chrgcar(self):
+        drone = VaspDrone(parse_chgcar=True)
+        doc = drone.assimilate(self.Si_static)
+
+        self.assertTrue(drone.parse_chgcar)
+        self.assertTrue('chgcar' in doc['calcs_reversed'][0])
+
+
 if __name__ == "__main__":
     unittest.main()
