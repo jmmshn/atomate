@@ -284,9 +284,7 @@ class TestVaspWorkflows(AtomateTest):
         else:
             my_wf = use_custodian(my_wf)
 
-        # add an msonable object to additional fields
-        my_wf.fws[0].tasks[-1]['additional_fields'].update(
-            {"test_additional_field": self.struct_si})
+        # set the flags for storing charge densties
         my_wf.fws[0].tasks[-1]["parse_chgcar"] = True
         my_wf.fws[0].tasks[-1]["parse_aeccar"] = True
         self.lp.add_wf(my_wf)
