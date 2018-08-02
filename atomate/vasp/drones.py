@@ -418,7 +418,6 @@ class VaspDrone(AbstractDrone):
         return d
 
     def process_chgcar(self, chg_file):
-        # parse dos if forced to or auto mode set and  0 ionic steps were performed -> static calculation and not DFPT
         try:
             with gzip.open(chg_file, 'rt') as f:
                 chg_str = f.read()
