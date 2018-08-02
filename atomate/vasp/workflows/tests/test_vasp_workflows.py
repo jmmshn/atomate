@@ -305,6 +305,8 @@ class TestVaspWorkflows(AtomateTest):
         accar2_fs_id = d["calcs_reversed"][0]["aeccar2_fs_id"]
 
         self.assertTrue(bool(chgcar_fs_id))
+        self.assertTrue(bool(accar0_fs_id))
+        self.assertTrue(bool(accar2_fs_id))
 
 if __name__ == "__main__":
     unittest.main()
