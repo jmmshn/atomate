@@ -293,8 +293,7 @@ class TestVaspWorkflows(AtomateTest):
 
         # run the workflow
         # set the db_file variable
-        #rapidfire(self.lp, fworker=FWorker(env={"db_file": os.path.join(db_dir, "db.json")}))
-        rapidfire(self.lp, fworker=FWorker(env={"db_file": "/Users/lik/Google_Drive/WORK/2018/js_cathodes/chgcar_store/test.db"}))
+        rapidfire(self.lp, fworker=FWorker(env={"db_file": os.path.join(db_dir, "db.json")}))
 
         d = self.get_task_collection().find_one()
         self._check_run(d, mode="static")
