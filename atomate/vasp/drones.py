@@ -393,22 +393,22 @@ class VaspDrone(AbstractDrone):
             # TODO require static run later
             # if self.parse_chgcar == True and vrun.incar.get("NSW", 0) < 1:
             try:
-                chg_str = self.process_chgcar(os.path.join(dir_name, d["output_file_paths"]["chgcar"]))
+                chgcar = self.process_chgcar(os.path.join(dir_name, d["output_file_paths"]["chgcar"]))
             except:
                 raise ValueError("No valid charge data exist")
-            d["chgcar"] = chg_str
+            d["chgcar"] = chgcar
 
         if self.parse_aeccar != False:
             try:
-                chg_str = self.process_chgcar(os.path.join(dir_name, d["output_file_paths"]["aeccar0"]))
+                chgcar = self.process_chgcar(os.path.join(dir_name, d["output_file_paths"]["aeccar0"]))
             except:
                 raise ValueError("No valid charge data exist")
-            d["aeccar0"] = chg_str
+            d["aeccar0"] = chgcar
             try:
-                chg_str = self.process_chgcar(os.path.join(dir_name, d["output_file_paths"]["aeccar2"]))
+                chgcar = self.process_chgcar(os.path.join(dir_name, d["output_file_paths"]["aeccar2"]))
             except:
                 raise ValueError("No valid charge data exist")
-            d["aeccar2"] = chg_str
+            d["aeccar2"] = chgcar
 
         # parse force constants
         if hasattr(vrun, "force_constants"):
@@ -419,11 +419,10 @@ class VaspDrone(AbstractDrone):
 
     def process_chgcar(self, chg_file):
         try:
-            with gzip.open(chg_file, 'rt') as f:
-                chg_str = f.read()
+            chgcar = Chgcar.from_file(chg_file)
         except IOError as e:
             raise ValueError("Unable to open CHGCAR/AECCAR file" )
-        return chg_str
+        return chgcar
 
     def process_bandstructure(self, vrun):
 
